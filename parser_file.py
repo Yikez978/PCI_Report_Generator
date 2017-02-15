@@ -53,6 +53,24 @@ def load_main_file(filename, main_dic):
 
     print "Active racker registered in 2017: ", len(main_dic.keys())
 
+def generate_name_list(name, dic):
+    wb = openpyxl.Workbook()
+    name_list = []
+
+    for key in dic.keys():
+        if dic[key].company == name:
+            name_list.append(key)
+
+    if len(name_list) == 0:
+        print "Something wrong with list"
+
+    ws = wb.get_sheet_by_name('Sheet')
+
+    for index in range(len(name_list)):
+        ws.cell(row=index+1, column=1).value = name_list[index]
+ 
+    wb.save(name+".xlsx")
+
 def update_people(filename, dic):
 
     wb = openpyxl.load_workbook(filename)
@@ -86,26 +104,33 @@ def find_missing_contractor(filename, dic):
 
     missing_name_list = []
 
-    for i in range(len(sheets)-1):
+    for i in range(len(sheets)):
         print "On sheet name : ", sheets[i]
         sheet = wb.get_sheet_by_name(wb.sheetnames[i])
         line_number = len(sheet["A"])
-        print "first_name: ", filename, "lines: ", line_number
+        print "Filename: ", filename, "lines: ", line_number
  
-        for row in range(2, line_number):
-            combi_name = sheet['A'+str(row)].value.encode('ascii','ignore').lower().strip()
-            email = sheet['E'+str(row)].value.encode('ascii','ignore').lower().strip()
+        for row in range(2, line_number+1):
+            first_name = sheet['A'+str(row)].value.encode('ascii','ignore').lower().strip()
+            last_name = sheet['B'+str(row)].value.encode('ascii','ignore').lower().strip()
+            sso = sheet['C'+str(row)].value
+            email = sheet['D'+str(row)].value
+            bu1 = sheet['E'+str(row)].value
+            bu2 = sheet['F'+str(row)].value
+            bu3 = sheet['G'+str(row)].value
+            bu4 = sheet['H'+str(row)].value
 
-            if " [c]" in combi_name:
-                combi_name = combi_name.replace(" [c]", "").strip()
-            last_name = combi_name.split(" ")[-1]
-            first_name = combi_name[:-len(last_name)].strip()
+           # if " [c]" in combi_name:
+           #     combi_name = combi_name.replace(" [c]", "").strip()
+
+           # last_name = combi_name.split(" ")[-1]
+           # first_name = combi_name[:-len(last_name)].strip()
+
             combi_name = last_name + ", " + first_name 
             
-            if combi_name not in dic:
-                missing_name_list.append([combi_name, email])
-    print missing_name_list
-
+            if combi_name not in dic.keys():
+                missing_name_list.append([first_name, last_name, sso, email, bu1, bu2, bu3, bu4])
+                print combi_name
 
     w = xw.Book()
     xw.Range('A1').value = missing_name_list 
@@ -341,7 +366,8 @@ def write_to_new_sheet(wb, superviser, l1, l2, l3, l4):
 
     for l in [l1, l2, l3, l4]:
         for r in range(2, len(l)+2):
-            ws.cell(row=r, column=index).value = l[r-2]
+            name = upper_first_letter(l[r-2])
+            ws.cell(row=r, column=index).value = name
         index += 1
 
 def compare_with_main_and_Contractor_not_regitst_list(dic):
