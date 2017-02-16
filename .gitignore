@@ -3,3 +3,4 @@
 *.swp
 .DS_Store
 !name_mapping.xlsx
+add_sso_and_leaders.py
