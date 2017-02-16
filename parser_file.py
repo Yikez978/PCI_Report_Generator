@@ -51,9 +51,10 @@ def load_main_file(filename, main_dic):
             if company != "rackspace" and (first_name, last_name) not in contractor_name_list:
                 contractor_name_list.append((first_name, last_name))
 
-    print "Active racker registered in 2017: ", len(main_dic.keys())
+    print "Active registered in 2017: ", len(main_dic.keys())
 
 def generate_name_list(name, dic):
+    print "Generate Name List for : ", name
     wb = openpyxl.Workbook()
     name_list = []
 
@@ -71,7 +72,34 @@ def generate_name_list(name, dic):
  
     wb.save(name+".xlsx")
 
-def update_people(filename, dic):
+def create_dic_for_name_mapping(filename):
+
+    wb = openpyxl.load_workbook(filename)
+    sheet = wb.get_sheet_by_name(wb.sheetnames[0])
+    line_number = len(sheet["A"])
+    print "Filename: ", filename, "Lines: ", line_number
+
+    name_mapping_dic = {}
+ 
+    for row in range(1, line_number+1):
+        first_name = sheet['A'+str(row)].value.encode('ascii','ignore').lower().strip()
+        last_name = sheet['B'+str(row)].value.encode('ascii','ignore').lower().strip()
+        sso = sheet['C'+str(row)].value
+        bu = sheet['D'+str(row)].value
+
+        combi_name = last_name + ", " + first_name 
+
+        if bu:
+            bu = bu.encode('ascii','ignore').lower().strip()
+
+        name_mapping_dic[combi_name] = bu
+    print "Lines in name_mapping_dic : ", len(name_mapping_dic)
+
+    return name_mapping_dic
+
+
+
+def update_people(filename, dic, name_mapping_dic):
 
     wb = openpyxl.load_workbook(filename)
     sheet = wb.get_sheet_by_name(wb.sheetnames[0])
@@ -79,23 +107,73 @@ def update_people(filename, dic):
     print "Filename: ", filename, "Lines: ", line_number
 
     name_not_in_main_dic = []
+
+    write_to_replace_list = []
  
     for row in range(1, line_number+1):
         first_name = sheet['A'+str(row)].value.encode('ascii','ignore').lower().strip()
         last_name = sheet['B'+str(row)].value.encode('ascii','ignore').lower().strip()
+        sso = sheet['C'+str(row)].value
+        bu = sheet['D'+str(row)].value
 
+        marker = ""
         combi_name = last_name+', '+first_name
 
-        bu = sheet['D'+str(row)].value
         if bu:
             bu = bu.encode('ascii','ignore').lower().strip()
+
+        if combi_name not in name_mapping_dic and (bu == "error" or bu == "unknown"):
+            marker = "Error"
+
+        if combi_name in name_mapping_dic:
+            marker = "Y"
+            bu = name_mapping_dic[combi_name]
 
         if combi_name not in dic:
             name_not_in_main_dic.append(combi_name)
         else:
             dic[combi_name].bu = bu 
+        write_to_replace_list.append([first_name, last_name, sso, bu, marker])
+
+    generate_marker_list(filename, write_to_replace_list)
 
     return name_not_in_main_dic
+
+def generate_marker_list(filename, name_list):
+    print "generate_marker_list start"
+
+    wb = openpyxl.Workbook()
+
+    ws = wb.get_sheet_by_name('Sheet')
+    line_number = len(ws["A"])
+    print "Filename: ", filename, "lines: ", line_number
+
+    ws.column_dimensions["A"].width = 30
+    ws.column_dimensions["B"].width = 30
+    ws.column_dimensions["C"].width = 30
+    ws.column_dimensions["D"].width = 30
+    ws.column_dimensions["E"].width = 30
+
+    print "name_list : ", len(name_list)
+
+    for index in range(len(name_list)):
+        for item in range(len(name_list[0])):
+            name = name_list[index][item]
+            name = upper_first_letter(name)
+            ws.cell(row=index+1, column=item+1).value = name
+
+    wb.save("Marker_"+ filename)
+
+def system_call(filename):
+    print "system_call start for : ", filename
+
+    from subprocess import Popen, PIPE
+    arg = ["python", "add_sso_and_leaders.py", filename]
+    process = Popen(arg, stdout=PIPE, stderr=PIPE)
+    stdout, stderr = process.communicate()
+    print "Stdout : ", stdout 
+    print "Stderr : ", stderr
+
 
 def find_missing_contractor(filename, dic):
 
@@ -167,6 +245,8 @@ def generate_report(dic):
     contractor_without_bu_numlist = []
 
     for key in dic.keys():
+        if "martinez" in key:
+            print key
         if dic[key].company == "rackspace":
             bu = dic[key].bu
             if bu:
@@ -197,6 +277,8 @@ def generate_report(dic):
             else:
                 contractor_without_bu_numlist.append(dic[key].combi_name)
 
+    print "racker_without_bu_numlist: ", racker_without_bu_numlist
+    print "contractor_without_bu_numlist : ", contractor_without_bu_numlist
 
     racker_bu_name_list = []
     contractor_bu_name_list = []
@@ -211,6 +293,8 @@ def generate_report(dic):
 
 
     all_bu_name_list = list(set(contractor_bu_name_list)|set(racker_bu_name_list))
+
+    print "mark1 : ", len(dic.keys())
 
     wb = openpyxl.Workbook()
 
@@ -268,6 +352,8 @@ def analysis_output(wb, all_bu_name_list, racker_bu_name_list, contractor_bu_nam
         result_list.append([bu_name, racker_completed, racker_all, racker_percentage, contractor_complated, contractor_all, contractor_percentrage, r_c_completed, r_c_registerd, r_c_ratio] )
 
 
+    print "racker_completed : ", racker_registered_total
+    print "contractor_complated: ", contractor_registered_total
     racker_completed_ratio = str(racker_completed_total*100/racker_registered_total) + " %"
     contractor_completed_ratio = str(contractor_completed_total*100/contractor_registered_total) + " %"
 

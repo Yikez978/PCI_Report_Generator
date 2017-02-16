@@ -14,13 +14,15 @@ from parser_file import find_missing_racker
 from parser_file import compare_with_main_and_Contractor_not_regitst_list 
 from parser_file import generate_report 
 from parser_file import generate_name_list 
+from parser_file import system_call 
+from parser_file import create_dic_for_name_mapping
 
 
 if __name__ == '__main__':
 
     main_file = sys.argv[1]
-    racker_file = sys.argv[2]
-    contractor_file = sys.argv[3]
+    #racker_file = sys.argv[2]
+    #contractor_file = sys.argv[3]
     #extra_file = sys.argv[4]
 
     main_dic = {}
@@ -30,13 +32,19 @@ if __name__ == '__main__':
 
 
     #generate racker and contractor name list
-    #generate_name_list("rackspace", main_dic)
-    #generate_name_list("contractor", main_dic)
+    generate_name_list("rackspace", main_dic)
+    generate_name_list("contractor", main_dic)
+
+    #call henry code generate list with leader
+    system_call("rackspace.xlsx")
+    system_call("contractor.xlsx")
+
+    name_mapping_dic = create_dic_for_name_mapping("name_mapping.xlsx")
 
     #update for racker 
-    name_not_in_list = update_people(racker_file, main_dic)
+    name_not_in_list = update_people("rackspace_with_leaders.xlsx", main_dic, name_mapping_dic)
     #update for contractor
-    name_not_in_list = update_people(contractor_file, main_dic)
+    name_not_in_list = update_people("contractor_with_leaders.xlsx", main_dic, name_mapping_dic)
 
     #generate report named "result.xlsx"
     generate_report(main_dic)
